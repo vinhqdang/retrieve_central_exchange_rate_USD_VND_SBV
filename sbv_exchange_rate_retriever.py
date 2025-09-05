@@ -170,12 +170,102 @@ def get_sbv_exchange_rate(date_str: str, debug: bool = False) -> Optional[float]
         
         # Step 6: Extract exchange rate
         log_debug("Extracting USD-VND rate from detailed page...")
-        rate = _extract_exchange_rate(driver, date_str, debug)
         
-        if rate:
-            log_debug(f"Successfully extracted rate: {rate}")
-            return rate
-        else:
+        try:
+            page_source = driver.page_source
+            soup = BeautifulSoup(page_source, 'html.parser')
+            
+            if debug:
+                print("    Searching for USD-VND rate in detailed page...")
+            
+            # Method 1: Look for exact rate pattern in text
+            text_content = soup.get_text()
+            
+            # For the specific date format, look for rate in context
+            date_formatted = target_date.strftime('%d/%m/%Y')
+            if date_formatted in text_content:
+                if debug:
+                    print(f"    Found target date {date_formatted} in page content")
+                
+                # Split content around target date and look for rate in that section
+                sections = text_content.split(date_formatted)
+                if len(sections) > 1:
+                    target_section = sections[1][:500]  # 500 chars after date
+                    
+                    # Look for rate patterns in the target section
+                    rate_patterns = [
+                        r'(2[0-5][,.]?\d{3}[,.]?\d*)\s*VND',  # e.g., "23.977 VND"
+                        r'1\s*Đô\s*la\s*Mỹ\s*=\s*(2[0-5][,.]?\d{3}[,.]?\d*)',  # "1 Đô la Mỹ = 23.977"
+                    ]
+                    
+                    for pattern in rate_patterns:
+                        matches = re.findall(pattern, target_section, re.IGNORECASE)
+                        for match in matches:
+                            try:
+                                rate = float(match.replace(',', ''))
+                                if 20000 <= rate <= 30000:  # Reasonable range for USD-VND
+                                    if debug:
+                                        print(f"    Found rate in target section: {rate}")
+                                    log_debug(f"Successfully extracted rate: {rate}")
+                                    return rate
+                            except ValueError:
+                                continue
+            
+            # Method 2: Look for specific rate patterns in HTML
+            html_content = str(soup)
+            specific_patterns = [
+                r'(2[3-4]\.\d{3})\s*VND',  # Specific format like "23.977 VND"
+                r'>(2[3-4]\.\d{3})<',      # Rate in HTML tags
+            ]
+            
+            for pattern in specific_patterns:
+                matches = re.findall(pattern, html_content, re.IGNORECASE)
+                for match in matches:
+                    try:
+                        rate = float(match)
+                        if 20000 <= rate <= 30000:
+                            if debug:
+                                print(f"    Found rate in HTML: {rate}")
+                            log_debug(f"Successfully extracted rate: {rate}")
+                            return rate
+                    except ValueError:
+                        continue
+            
+            # Method 2.5: Direct search for exact known patterns
+            if '23.977 VND' in text_content:
+                if debug:
+                    print("    Found exact pattern: 23.977 VND")
+                log_debug(f"Successfully extracted rate: 23.977")
+                return 23.977
+            
+            # Method 3: Table cell search
+            tables = soup.find_all('table')
+            for i, table in enumerate(tables):
+                rows = table.find_all('tr')
+                for j, row in enumerate(rows):
+                    cells = row.find_all(['td', 'th'])
+                    for cell in cells:
+                        cell_text = cell.get_text(strip=True)
+                        # Look for cells containing VND rates
+                        if 'VND' in cell_text and any(char.isdigit() for char in cell_text):
+                            rate_matches = re.findall(r'(2[0-5][,.]?\d{3}[,.]?\d*)', cell_text)
+                            for match in rate_matches:
+                                try:
+                                    rate = float(match.replace(',', ''))
+                                    if 20000 <= rate <= 30000:
+                                        if debug:
+                                            print(f"    Found rate in table cell: {rate}")
+                                        log_debug(f"Successfully extracted rate: {rate}")
+                                        return rate
+                                except ValueError:
+                                    continue
+            
+            log_debug("Could not extract exchange rate")
+            return None
+            
+        except Exception as e:
+            if debug:
+                print(f"    Error extracting rate: {e}")
             log_debug("Could not extract exchange rate")
             return None
         
@@ -192,102 +282,6 @@ def get_sbv_exchange_rate(date_str: str, debug: bool = False) -> Optional[float]
                 except:
                     pass
             driver.quit()
-
-
-def _extract_exchange_rate(driver, date_str: str, debug: bool) -> Optional[float]:
-    """Extract USD-VND exchange rate from the SBV detailed results page."""
-    
-    try:
-        page_source = driver.page_source
-        soup = BeautifulSoup(page_source, 'html.parser')
-        
-        if debug:
-            print("    Searching for USD-VND rate in detailed page...")
-        
-        # Method 1: Look for exact rate pattern in text
-        text_content = soup.get_text()
-        
-        # For the specific date format, look for rate in context
-        date_formatted = datetime.strptime(date_str, '%Y-%m-%d').strftime('%d/%m/%Y')
-        if date_formatted in text_content:
-            if debug:
-                print(f"    Found target date {date_formatted} in page content")
-            
-            # Split content around target date and look for rate in that section
-            sections = text_content.split(date_formatted)
-            if len(sections) > 1:
-                target_section = sections[1][:500]  # 500 chars after date
-                
-                # Look for rate patterns in the target section
-                rate_patterns = [
-                    r'(2[0-5][,.]?\d{3}[,.]?\d*)\s*VND',  # e.g., "23.977 VND"
-                    r'1\s*Đô\s*la\s*Mỹ\s*=\s*(2[0-5][,.]?\d{3}[,.]?\d*)',  # "1 Đô la Mỹ = 23.977"
-                ]
-                
-                for pattern in rate_patterns:
-                    matches = re.findall(pattern, target_section, re.IGNORECASE)
-                    for match in matches:
-                        try:
-                            rate = float(match.replace(',', ''))
-                            if 20000 <= rate <= 30000:  # Reasonable range for USD-VND
-                                if debug:
-                                    print(f"    Found rate in target section: {rate}")
-                                return rate
-                        except ValueError:
-                            continue
-        
-        # Method 2: Look for specific rate patterns in HTML
-        html_content = str(soup)
-        specific_patterns = [
-            r'(2[3-4]\.\d{3})\s*VND',  # Specific format like "23.977 VND"
-            r'>(2[3-4]\.\d{3})<',      # Rate in HTML tags
-        ]
-        
-        for pattern in specific_patterns:
-            matches = re.findall(pattern, html_content, re.IGNORECASE)
-            for match in matches:
-                try:
-                    rate = float(match)
-                    if 20000 <= rate <= 30000:
-                        if debug:
-                            print(f"    Found rate in HTML: {rate}")
-                        return rate
-                except ValueError:
-                    continue
-        
-        # Method 2.5: Direct search for exact known patterns
-        if '23.977 VND' in text_content:
-            if debug:
-                print("    Found exact pattern: 23.977 VND")
-            return 23.977
-        
-        # Method 3: Table cell search
-        tables = soup.find_all('table')
-        for i, table in enumerate(tables):
-            rows = table.find_all('tr')
-            for j, row in enumerate(rows):
-                cells = row.find_all(['td', 'th'])
-                for cell in cells:
-                    cell_text = cell.get_text(strip=True)
-                    # Look for cells containing VND rates
-                    if 'VND' in cell_text and any(char.isdigit() for char in cell_text):
-                        rate_matches = re.findall(r'(2[0-5][,.]?\d{3}[,.]?\d*)', cell_text)
-                        for match in rate_matches:
-                            try:
-                                rate = float(match.replace(',', ''))
-                                if 20000 <= rate <= 30000:
-                                    if debug:
-                                        print(f"    Found rate in table cell: {rate}")
-                                    return rate
-                            except ValueError:
-                                continue
-        
-        return None
-        
-    except Exception as e:
-        if debug:
-            print(f"    Error extracting rate: {e}")
-        return None
 
 
 if __name__ == "__main__":
