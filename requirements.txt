@@ -3,3 +3,6 @@ beautifulsoup4>=4.12.0
 lxml>=4.9.0
 selenium>=4.15.0
 webdriver-manager>=4.0.0
+playwright>=1.55.0
+requests-html>=0.10.0
+lxml_html_clean>=0.4.0

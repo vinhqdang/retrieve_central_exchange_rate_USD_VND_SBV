@@ -1,0 +1,231 @@
+<html lang="en-US"><head><script>
+/*
+** Copyright (c) 2008, Oracle and/or its affiliates. All rights reserved.
+*/
+
+/**
+ * This is the loopback script to process the url before the real page loads. It introduces
+ * a separate round trip. During this first roundtrip, we currently do two things: 
+ * - check the url hash portion, this is for the PPR Navigation. 
+ * - do the new window detection
+ * the above two are both controled by parameters in web.xml
+ * 
+ * Since it's very lightweight, so the network latency is the only impact. 
+ * 
+ * here are the list of will-pass-in parameters (these will replace the param in this whole
+ * pattern: 
+ *        viewIdLength                           view Id length (characters), 
+ *        loopbackIdParam                        loopback Id param name, 
+ *        loopbackId                             loopback Id,
+ *        windowModeIdParam                      window mode param name, 
+ *        clientWindowIdParam                    client window Id param name,
+ *        windowId                               window Id, 
+ *        initPageLaunch                         initPageLaunch, 
+ *        enableNewWindowDetect                  whether we want to enable new window detection
+ *        jsessionId                             session Id that needs to be appended to the redirect URL
+ *        enablePPRNav                           whether we want to enable PPR Navigation
+ *        internalParamsObj                      an object whose keys are the names of the internal parameters and whose values evaluate as true
+ *        noLoopbackViewId                       View Id used where the page should be redirected when the session cannot be established due to the 
+ *                                               browser with disabled cookies accessing a server with URL rewriting disabled 
+ */
+ 
+ 
+function _addParam(queryString, paramName, value)
+{
+  var hasValue = (value != null && value !== '');
+    
+  if (hasValue)
+  { 
+    if (queryString == null || queryString ==='')
+    {
+      queryString = "?";
+    }
+    else
+    {
+      queryString += "&";
+    }
+    queryString = queryString + paramName + '=' + value; 
+  }
+  return queryString;
+}
+
+function _cookiesEnabled()
+{
+  return (navigator && navigator.cookieEnabled);
+}
+
+var internalParams = {'_afrLoop':1,'_afrWindowMode':1,'_afrWindowId':1,'_afrRedirect':1};
+var queryParamNames = [];
+var queryParamValues = [];
+
+
+function _addQS(pname, pvalue)
+{
+  if (!internalParams[pname])
+  {
+    queryParamNames.push(pname);
+    queryParamValues.push(pvalue)
+  }    
+}
+
+function _replaceCallback (p0, pname, p2, pvalue) 
+{ 
+  _addQS(pname, pvalue);
+} 
+
+
+var id = null; 
+var query = null; 
+var href = document.location.href; 
+var hashIndex = href.indexOf("#"); 
+var hash = null;
+
+/* process the hash part of the url, split the url */
+if (hashIndex > 0) 
+{ 
+  hash = href.substring(hashIndex + 1); 
+  /* only analyze hash when pprNav is on */
+  if (false && hash && hash.length > 0) 
+  { 
+    hash = decodeURIComponent(hash); 
+    if (hash.charAt(0) == "@") 
+    { 
+      query = hash.substring(1); 
+    } 
+    else 
+    { 
+      var state = hash.split("@"); 
+      id = state[0]; 
+      query = state[1]; 
+    } 
+  } 
+  href = href.substring(0, hashIndex); 
+} 
+
+/* process the query part */
+var queryIndex = href.indexOf("?"); 
+if (queryIndex > 0) 
+{
+  // only when pprNav is on, we take in the query from the hash portion
+  query = (query || (id && id.length>0))? query: href.substring(queryIndex); 
+  href = href.substring(0, queryIndex); 
+} 
+
+if (query != null && query.length > 0)
+{
+  // extract all query parameters
+  query.replace(/([^?=&]+)(=([^&]*))?/g, _replaceCallback);
+  
+  query = null;
+  if (queryParamNames.length > 0)
+  {
+    query = '';
+    
+    for (var i = 0; i < queryParamNames.length; i++)
+    {
+      var n = queryParamNames[i];
+      var v = queryParamValues[i];
+      query = query +  ((i == 0) ? '?' : '&')  + n +  '=' + ((v == null) ? '' : v); 
+    }
+  }
+}
+
+var jsessionIndex = href.indexOf(';');
+if (jsessionIndex > 0)
+{
+  href = href.substring(0, jsessionIndex);
+}
+
+
+// Check whether HTTP session can be established by verifying that cookies are enabled or URL rewriting is on. 
+// If not, abort processing and redirect to an error page
+if (!'' && !_cookiesEnabled())
+{
+  window.location.replace(href.substring(0, href.length - 19) + '/_noloopbackerror_');
+}
+else
+{
+  /* we will replace the viewId only when pprNav is turned on */
+  if (false) 
+  {
+    if (id != null && id.length > 0) 
+    { 
+      href = href.substring(0, href.length - 19) + id;
+    } 
+  }
+  
+  query = _addParam(query, "_afrLoop", "32844550916685037");
+  
+  /* below is the new window detection logic */
+  var initWindowName = "_afr_init_"; // temporary window name set to a new window
+  var windowName = window.name;
+  
+  // if the window name is "_afr_init_", treat it as redirect case of a new window
+  if ((true) && (!windowName || windowName==initWindowName || 
+      windowName!="null"))  
+  { 
+    /* append the _afrWindowMode param */
+    var windowMode;
+    if (true) 
+    {
+      /* this is the initial page launch case, 
+         also this could be that we couldn't detect the real windowId from the server side */
+      windowMode=0;
+    }
+    else if ((href.indexOf("/__ADFvDlg__") > 0) || (query.indexOf("__ADFvDlg__") >= 0))
+    {
+      /* this is the dialog case */
+      windowMode=1;
+    }
+    else 
+    {
+      /* this is the ctrl-N case */
+      windowMode=2;
+    }
+    
+    query = _addParam(query, "_afrWindowMode", windowMode);
+  
+    /* append the _afrWindowId param */
+    var clientWindowId;
+    /* in case we couldn't detect the windowId from the server side */
+    if (!windowName || windowName == initWindowName) 
+    {
+      clientWindowId = "null";
+      
+      // set window name to an initial name so we can figure out whether a page is loaded from
+      // cache when doing Ctrl+N with IE
+      window.name = initWindowName;
+    }
+    else 
+    {
+      clientWindowId = windowName;
+    }  
+    
+    query = _addParam(query, "_afrWindowId", clientWindowId);
+    
+  }
+  
+  var sess = "";
+  
+  if (sess)
+  {
+    /* here we check the jsessionId, if we ask the container to send jsessionId as */
+    /* a parameter then it will look like "?jsessionid=xxx". */
+    if (sess.indexOf(";")==0)
+    {
+      href += sess;
+    }
+    else if (sess.indexOf("?") == 0)
+    {
+      /* at this time query should already be non-empty */
+      query += "&" + sess.substr(1);
+    }
+  }
+  
+  /* if pprNav is on, then the hash portion should have already been processed */
+  if ((false) || (hash == null))
+    document.location.replace(href + query);
+  else 
+    document.location.replace(href + query + "#" + hash);
+}
+</script><noscript>This page uses JavaScript and requires a JavaScript enabled browser.Your browser is not JavaScript enabled.</noscript></head></html>
