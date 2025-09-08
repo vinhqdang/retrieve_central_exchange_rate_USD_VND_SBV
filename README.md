@@ -5,9 +5,11 @@ A Python library to retrieve official central exchange rates (tỷ giá trung t�
 ## Features
 
 - **Official SBV data**: Retrieves rates directly from State Bank of Vietnam website
+- **Multiple sources**: Support for both Vietnamese and English SBV interfaces
 - **Historical rates**: Get exchange rates for specific dates
 - **Automated workflow**: Follows the complete SBV search process automatically
 - **Robust extraction**: Uses multiple methods to extract rates from SBV pages
+- **Auto ChromeDriver**: Automatic ChromeDriver installation and management
 - **Debug mode**: Detailed logging for troubleshooting
 
 ## Installation
@@ -31,13 +33,13 @@ A Python library to retrieve official central exchange rates (tỷ giá trung t�
 
 ## Quick Start
 
-### Get Exchange Rate for Specific Date
+### Get Exchange Rate from English SBV Site (Recommended)
 
 ```python
-from sbv_exchange_rate_retriever import get_sbv_exchange_rate
+from sbv_exchange_rate_retriever import get_sbv_exchange_rate_english
 
-# Get exchange rate for a specific date
-rate = get_sbv_exchange_rate('2023-09-01')
+# Get exchange rate for a specific date from English SBV interface
+rate = get_sbv_exchange_rate_english('2023-09-01')
 
 if rate:
     print(f"USD-VND rate on 2023-09-01: {rate} VND")
@@ -46,13 +48,27 @@ else:
     print("Exchange rate not available for this date")
 ```
 
-### Enable Debug Mode
+### Get Exchange Rate from Vietnamese SBV Site
 
 ```python
 from sbv_exchange_rate_retriever import get_sbv_exchange_rate
 
+# Get exchange rate for a specific date from Vietnamese SBV interface
+rate = get_sbv_exchange_rate('2023-09-01')
+
+if rate:
+    print(f"USD-VND rate on 2023-09-01: {rate} VND")
+else:
+    print("Exchange rate not available for this date")
+```
+
+### Enable Debug Mode
+
+```python
+from sbv_exchange_rate_retriever import get_sbv_exchange_rate_english
+
 # Get exchange rate with detailed logging
-rate = get_sbv_exchange_rate('2023-09-01', debug=True)
+rate = get_sbv_exchange_rate_english('2023-09-01', debug=True)
 
 if rate:
     print(f"SBV official rate: {rate} VND per USD")
@@ -76,14 +92,37 @@ This will:
 
 The library retrieves exchange rates directly from:
 
-**State Bank of Vietnam (SBV)** - Official central bank rates (https://dttktt.sbv.gov.vn/TyGia/faces/TyGiaTrungTam.jspx)
+**State Bank of Vietnam (SBV)** - Official central bank rates:
+- English interface: https://dttktt.sbv.gov.vn/TyGia/faces/Aiber.jspx (Recommended)
+- Vietnamese interface: https://dttktt.sbv.gov.vn/TyGia/faces/TyGiaTrungTam.jspx
 
 ## API Reference
 
 ### Functions
 
+#### `get_sbv_exchange_rate_english(date_str, debug=False)` (Recommended)
+Get USD-VND central exchange rate from State Bank of Vietnam English interface for a specific date.
+
+**Parameters:**
+- `date_str` (str): Date in format 'YYYY-MM-DD' (e.g., '2023-09-01')
+- `debug` (bool): Enable debug output for troubleshooting
+
+**Returns:**
+- `float`: Official SBV central exchange rate (VND per USD) or `None` if not found
+
+**Raises:**
+- `ValueError`: If date format is invalid
+- `ImportError`: If Selenium is not installed
+
+**Example:**
+```python
+rate = get_sbv_exchange_rate_english('2023-09-01')
+if rate:
+    print(f"SBV rate: {rate} VND per USD")
+```
+
 #### `get_sbv_exchange_rate(date_str, debug=False)`
-Get USD-VND central exchange rate from State Bank of Vietnam for a specific date.
+Get USD-VND central exchange rate from State Bank of Vietnam Vietnamese interface for a specific date.
 
 **Parameters:**
 - `date_str` (str): Date in format 'YYYY-MM-DD' (e.g., '2023-09-01')
@@ -153,9 +192,8 @@ The library handles various error conditions gracefully:
 ## Requirements
 
 - **Python 3.7+**
-- **Chrome browser** (for Selenium WebDriver)
-- **ChromeDriver** (must be in PATH)
-- **Python packages**: selenium, beautifulsoup4, requests
+- **Chrome browser** (automatically detected by webdriver-manager)
+- **Python packages**: selenium, beautifulsoup4, requests, webdriver-manager (ChromeDriver auto-installed)
 
 ## Project Structure
 
