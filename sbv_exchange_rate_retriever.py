@@ -87,8 +87,18 @@ def get_sbv_exchange_rate_english(date_str: str, debug: bool = False) -> Optiona
         chrome_options.add_argument("--window-size=1920,1080")
         chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+        try:
+            # Try to get the latest ChromeDriver
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+        except Exception as e:
+            log_debug(f"Failed with webdriver-manager: {e}")
+            # Fallback to system ChromeDriver
+            try:
+                driver = webdriver.Chrome(options=chrome_options)
+            except Exception as e2:
+                log_debug(f"Failed with system ChromeDriver: {e2}")
+                raise Exception(f"ChromeDriver setup failed. Try: sudo apt install chromium-chromedriver")
         
         # Step 1: Load English SBV exchange rate page
         log_debug("Loading English SBV exchange rate page...")
@@ -384,8 +394,18 @@ def get_sbv_exchange_rate(date_str: str, debug: bool = False) -> Optional[float]
         chrome_options.add_argument("--window-size=1920,1080")
         chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+        try:
+            # Try to get the latest ChromeDriver
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+        except Exception as e:
+            log_debug(f"Failed with webdriver-manager: {e}")
+            # Fallback to system ChromeDriver
+            try:
+                driver = webdriver.Chrome(options=chrome_options)
+            except Exception as e2:
+                log_debug(f"Failed with system ChromeDriver: {e2}")
+                raise Exception(f"ChromeDriver setup failed. Try: sudo apt install chromium-chromedriver")
         
         # Step 1: Load SBV central rate page
         log_debug("Loading SBV central rate page...")

@@ -5,11 +5,13 @@ A Python library to retrieve official central exchange rates (tỷ giá trung t�
 ## Features
 
 - **Official SBV data**: Retrieves rates directly from State Bank of Vietnam website
-- **Multiple sources**: Support for both Vietnamese and English SBV interfaces
+- **Multiple versions**: Simple HTTP version (no Chrome) and full Selenium version
+- **Multiple sources**: Support for SBV, Vietcombank, and international APIs
 - **Historical rates**: Get exchange rates for specific dates
+- **No browser required**: Simple version works without Chrome/ChromeDriver
 - **Automated workflow**: Follows the complete SBV search process automatically
 - **Robust extraction**: Uses multiple methods to extract rates from SBV pages
-- **Auto ChromeDriver**: Automatic ChromeDriver installation and management
+- **Auto ChromeDriver**: Automatic ChromeDriver installation and management (Selenium version)
 - **Debug mode**: Detailed logging for troubleshooting
 
 ## Installation
@@ -79,19 +81,21 @@ if rate:
 ### Command Line Usage
 
 ```bash
-# Use today's date
-python sbv_exchange_rate_retriever.py
+# Simple version (no Chrome required) - RECOMMENDED
+python sbv_simple.py 2025-01-19
+python sbv_simple.py 2025-01-19 --debug
 
-# Get rate for specific date
+# Full Selenium version (requires Chrome)
 python sbv_exchange_rate_retriever.py 2025-01-19
-
-# Get rate with debug information
 python sbv_exchange_rate_retriever.py 2025-01-19 --debug
-python sbv_exchange_rate_retriever.py 2025-01-19 -d      # Short form
+
+# Use today's date (both versions)
+python sbv_simple.py
+python sbv_exchange_rate_retriever.py
 
 # With conda environment
 conda activate py310
-python sbv_exchange_rate_retriever.py 2025-01-19
+python sbv_simple.py 2025-01-19
 ```
 
 This will:
