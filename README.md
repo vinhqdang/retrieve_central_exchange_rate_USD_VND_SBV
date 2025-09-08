@@ -74,19 +74,30 @@ if rate:
     print(f"SBV official rate: {rate} VND per USD")
 ```
 
-## Running the Example
+## Running the Script
 
-Execute the main script to test the functionality:
+### Command Line Usage
 
 ```bash
-conda activate py310
+# Use today's date
 python sbv_exchange_rate_retriever.py
+
+# Get rate for specific date
+python sbv_exchange_rate_retriever.py 2025-01-19
+
+# Get rate with debug information
+python sbv_exchange_rate_retriever.py 2025-01-19 --debug
+python sbv_exchange_rate_retriever.py 2025-01-19 -d      # Short form
+
+# With conda environment
+conda activate py310
+python sbv_exchange_rate_retriever.py 2025-01-19
 ```
 
 This will:
-- Test exchange rate retrieval for September 1, 2023
-- Show the complete SBV search workflow
-- Display the official central exchange rate
+- Retrieve the official SBV central exchange rate for the specified date
+- Show the complete SBV search workflow (if debug mode enabled)
+- Display the exchange rate with proper formatting
 
 ## Data Source
 

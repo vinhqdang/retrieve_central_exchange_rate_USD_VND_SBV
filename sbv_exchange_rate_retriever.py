@@ -586,25 +586,42 @@ def get_sbv_exchange_rate(date_str: str, debug: bool = False) -> Optional[float]
 
 if __name__ == "__main__":
     """
-    Example usage and testing
+    Command line interface and example usage
     """
+    import sys
+    from datetime import date
+    
     print("=== SBV (State Bank of Vietnam) Exchange Rate Retriever ===")
     print()
     
-    # Test with current date
-    from datetime import date
-    test_date = date.today().strftime('%Y-%m-%d')
+    # Parse command line arguments
+    if len(sys.argv) > 1:
+        # Use date from command line argument
+        test_date = sys.argv[1]
+        print(f"Using date from command line: {test_date}")
+    else:
+        # Use current date as default
+        test_date = date.today().strftime('%Y-%m-%d')
+        print(f"No date specified, using today's date: {test_date}")
+        print("💡 Tip: You can specify a date like: python sbv_exchange_rate_retriever.py 2025-01-19")
+    
     print(f"Retrieving SBV exchange rate from English site for {test_date}...")
     print("-" * 50)
     
+    # Check for debug flag
+    debug_mode = '--debug' in sys.argv or '-d' in sys.argv
+    if debug_mode:
+        print("🔍 Debug mode enabled")
+        print("-" * 50)
+    
     try:
-        rate = get_sbv_exchange_rate_english(test_date, debug=True)
+        rate = get_sbv_exchange_rate_english(test_date, debug=debug_mode)
         
         print("-" * 50)
         if rate:
             print("✅ SUCCESS!")
             print(f"📅 Date: {test_date}")
-            print(f"💰 Rate: 1 USD = {rate} VND")
+            print(f"💰 Rate: 1 USD = {rate:,.0f} VND")
             print(f"🏛️  Source: State Bank of Vietnam (Official English Site)")
             print(f"📄 Type: Central Exchange Rate")
         else:
@@ -615,25 +632,31 @@ if __name__ == "__main__":
             print("  • No data available for the specified date")
             print("  • ChromeDriver not installed")
             print("  • Website structure changes")
+            print("  • Weekend/holiday (no trading)")
             
     except ValueError as e:
         print(f"❌ Invalid date format: {e}")
+        print("📋 Please use format: YYYY-MM-DD (e.g., 2025-01-19)")
     except ImportError as e:
         print(f"❌ Missing dependency: {e}")
+        print("📦 Run: pip install -r requirements.txt")
     except Exception as e:
         print(f"❌ Unexpected error: {e}")
     
     print()
     print("=" * 60)
-    print("USAGE:")
+    print("COMMAND LINE USAGE:")
     print("=" * 60)
-    print("from sbv_exchange_rate_retriever import get_sbv_exchange_rate_english")
+    print("python sbv_exchange_rate_retriever.py                    # Use today's date")
+    print("python sbv_exchange_rate_retriever.py 2025-01-19         # Specific date")
+    print("python sbv_exchange_rate_retriever.py 2025-01-19 --debug # With debug info")
+    print("python sbv_exchange_rate_retriever.py 2025-01-19 -d      # With debug info (short)")
     print()
-    print("# Get exchange rate for a specific date from English SBV site")
-    print("rate = get_sbv_exchange_rate_english('2023-09-01')")
+    print("PYTHON USAGE:")
+    print("from sbv_exchange_rate_retriever import get_sbv_exchange_rate_english")
+    print("rate = get_sbv_exchange_rate_english('2025-01-19')")
     print("if rate:")
     print("    print(f'1 USD = {rate} VND')")
     print()
     print("REQUIREMENTS:")
-    print("pip install selenium beautifulsoup4 requests")
-    print("+ ChromeDriver must be installed and in PATH")
+    print("pip install -r requirements.txt")
